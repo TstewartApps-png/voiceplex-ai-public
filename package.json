@@ -1,0 +1,17 @@
+{
+  "name": "voiceplex-ai",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n \"backend,frontend,voice\" -c \"yellow,cyan,magenta\" \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:voice\"",
+    "dev:backend": "cd backend && uvicorn app.main:app --reload --port 8000",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:voice": "cd voice-server && python voice_server.py",
+    "seed": "cd backend && python seed_database.py",
+    "test": "cd backend && pytest -q",
+    "build": "cd frontend && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}

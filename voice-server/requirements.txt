@@ -1,0 +1,9 @@
+# VoicePlex voice server (STT + TTS over WebSocket)
+aiohttp>=3.9,<4
+numpy>=1.24
+
+# TTS (default backend). Also requires the `ffmpeg` binary on PATH.
+edge-tts>=6.1
+
+# STT (recommended). CPU works for base.en; GPU is faster. Pulls in ctranslate2 + torch-free runtime.
+faster-whisper>=1.0

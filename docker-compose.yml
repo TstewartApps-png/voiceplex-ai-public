@@ -1,0 +1,73 @@
+# VoicePlex AI - local development stack
+#   docker compose up --build
+#
+# Services: MongoDB, Redis, backend API, voice server (STT/TTS), frontend.
+# Copy .env.example -> .env first (SECRET_KEY / ENCRYPTION_KEY are required).
+
+services:
+  backend:
+    build: ./backend
+    ports: ["8000:8000"]
+    env_file: .env
+    environment:
+      APP_ENV: development
+      DEBUG: "true"
+      MONGODB_URI: mongodb://mongodb:27017/voiceplex
+      REDIS_URL: redis://redis:6379/0
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:8000}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      PERSONAPLEX_URL: ws://voice-server:8765/ws
+    depends_on:
+      mongodb: { condition: service_healthy }
+      redis: { condition: service_started }
+    volumes:
+      - ./backend/app:/app/app:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx;httpx.get('http://localhost:8000/health',timeout=5).raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  voice-server:
+    build: ./voice-server
+    ports: ["8765:8765"]
+    environment:
+      VOICE_STT_MODEL: ${VOICE_STT_MODEL:-base.en}
+      VOICE_TTS_BACKEND: ${VOICE_TTS_BACKEND:-auto}
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports: ["3000:3000"]
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    depends_on: [backend]
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7.0
+    ports: ["27017:27017"]
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+  # Celery workers (outbound call scheduling, reminders) are not implemented yet;
+  # add them here when app/workers/celery_app.py exists.
+
+volumes:
+  mongodb_data:
+  redis_data:
